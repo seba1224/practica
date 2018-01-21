@@ -1,0 +1,54 @@
+sigma 
+       [2, 5],  si
+       [3, 2],	si
+       [3, 3],	si
+       [3, 5],	si
+       [4, 3],	si
+       [4, 4],	si
+       [4, 5],	si
+       [5, 2],	si
+       [5, 3],	si
+       [5, 4]	si
+
+sigma2
+       [0, 0],	no ---> linea base no es plana
+       [0, 2],	si
+       [0, 3],	si
+       [0, 4],	si
+       [0, 5],	si
+       [0, 6],	si
+       [1, 2],	si
+       [1, 3],	si
+       [1, 4],	si
+       [1, 5],	si	**1,6 tmb podria, se quedo afuera con -0.065
+       [2, 2],	si	
+       [2, 3],	si
+       [2, 4],	si
+       [2, 5],	si
+       [2, 6],	si/no ..(es muy chica la emision)
+       [3, 2],	si	**3,3 tmb podria ser..pero parece q tiene mucho ruido
+       [3, 3],	si
+       [3, 4],	si	
+       [3, 5],	si
+       [3, 6],	si/no
+       [4, 1],	si
+       [4, 2],	si
+       [4, 3],	si
+       [4, 4],	si
+       [4, 5],	si
+       [4, 6],	si
+       [5, 1],	si
+       [5, 2],	si
+       [5, 3],	si
+       [5, 4],	si
+       [5, 5],	si	
+       [6, 2],	si
+       [6, 3],	si
+       [6, 4],	si
+       [7, 2],	si
+       [7, 3]	si/no
+
+
+Los espectros que salen de sigma2 se condicen con los que tengo anotados
+con emisión en el cuaderno, algunos quedaron fuera pero puede deberse al alto piso
+de ruido

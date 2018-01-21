@@ -26,11 +26,25 @@ delta_vel = np.abs(vel[1]-vel[2])
 datos[122, :, :] = (datos[121, :, :]+datos[123, :, :])
 
 temp_rms = np.zeros([9, 9])
+temp_rms2 = np.zeros([9, 9])  # no considera la linea de emision para cal el rms
 for i in range(0, 9):
     for j in range(0, 9):
         # Aca tengo la duda si se considera la linea de emision pa calcular el RMS
         temp_rms[i, j] = np.sqrt(1.0/len(vel)*np.sum(datos[:, i, j]**2))
+        temp_rms2[i, j] = np.sqrt(1.0/len(vel)*(np.sum(datos[0:49, i, j]**2) +
+                                  np.sum(datos[113:, i, j]**2)))
         j += 1
     j = 0
     i += 1
 sigma = np.sqrt(len(vel))*temp_rms*delta_vel
+sigma2 = np.sqrt(len(vel))*temp_rms2*delta_vel
+
+
+integ_fits = pf.open('integ_RCrA_19Jan.fit')
+peak_fits = pf.open('peak_RCrA_19Jan.fit')
+integ_data = integ_fits[0].data*delta_vel
+peak_data = peak_fits[0].data
+index_emission = np.argwhere((integ_data-3*sigma2) > 0)
+# index_emission = np.argwhere((integ_data-3*sigma) > 0)
+# index_peak = np.argwhere((peak_data-3*temp_rms2) > 0)
+# index_peak = np.argwhere((peak_data-3*temp_rms) > 0)
