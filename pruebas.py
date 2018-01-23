@@ -1,6 +1,10 @@
 import numpy as np
 import astropy.io.fits as pf
 import matplotlib.pyplot as plt
+from astropy import units as u
+import scipy.stats as stats
+import scipy.optimize
+from astropy import constants as c
 
 
 def values(h, j):
@@ -41,10 +45,121 @@ sigma2 = np.sqrt(len(vel))*temp_rms2*delta_vel
 
 
 integ_fits = pf.open('integ_RCrA_19Jan.fit')
-peak_fits = pf.open('peak_RCrA_19Jan.fit')
-integ_data = integ_fits[0].data*delta_vel
+peak_fits = pf.open('peak_RCrA_19jan.fit')
+integ_data = integ_fits[0].data
+"""no estoy tan seguro que haya q multiplicar por delta v, por que si hago
+integrate.trapz(datos[49:113,4,4], vel[49:113] da lo mismo q el fits"""
 peak_data = peak_fits[0].data
-index_emission = np.argwhere((integ_data-3*sigma2) > 0)
-# index_emission = np.argwhere((integ_data-3*sigma) > 0)
-# index_peak = np.argwhere((peak_data-3*temp_rms2) > 0)
-# index_peak = np.argwhere((peak_data-3*temp_rms) > 0)
+integ_data_flat = integ_data.reshape(81)
+index_emission = np.argwhere((integ_data_flat-3*sigma2.reshape(81)) > 0)
+
+W_co = integ_data_flat[index_emission[1:]]  # El 1er dato es una linea de base que no es plana
+x_co = 2*10**20  # cm**-2(K*km/s)**-1 con 30% de incerteza
+n_H2 = x_co*W_co*(u.cm)**-2
+d = 130*u.pc
+ang = 8.8*2*u.arcmin.to(u.rad)
+area = (d**2*(ang)**2).to(u.cm**2)
+N_tot = (np.sum(n_H2)*area)
+m_H = 1.00794*u.u
+m_H2 = 2.72*m_H  # correccion por abundancia de helio(paper Garcia)
+M_tot = (m_H2*N_tot).to(u.M_sun)
+
+"""Calculo mediante teorema del virial"""
+datos_flat = datos.reshape(257, 81)
+spec = datos_flat[49:113, index_emission[1:]]
+
+
+def gaussian(x, amp, cen, wid):
+    output = amp * np.exp(-(x-cen)**2 / wid)
+    return output
+
+
+def Modelo_gauss(x, a, b, A, mu, sigma):
+    """
+    entrega valores de la funcion del modelo gaussiano evaluada en punto
+    o set de puntos
+    """
+    f = (a*x + b) - A * stats.norm(loc=mu, scale=sigma).pdf(x)
+    return f
+
+
+def ordenar(x_data, y_data, funcion, p_optimo):
+    """
+    Retorna arreglo ordenado de datos y de valores obtenidos con una funcion
+    modelo
+    """
+    xmin = np.min(x_data)
+    xmax = np.max(x_data)
+    y_modelo_ordenado = np.sort(funcion(np.linspace(xmin, xmax, 200),
+                                *p_optimo))
+    y_data_ordenado = np.sort(y_data)
+    return y_data_ordenado, y_modelo_ordenado
+
+
+def prob_acumulada(y_data, y_modelo_ordenado):
+    """
+    Crea y entrega funcion de distribucion acumulada para el modelo
+    """
+    y_data_ordenado = np.sort(y_data)
+    dist_acumulada_modelo = np.array([np.sum(y_modelo_ordenado <= yy) for yy in
+                                     y_data_ordenado]) / len(y_modelo_ordenado)
+    return dist_acumulada_modelo
+
+
+desv_fit = np.zeros(len(spec[1, :]))
+for i in range(0, len(spec[1, :])):
+    x = vel[49:113]
+    y = spec[:, i]
+
+    a, b = np.polyfit(x, y, 1)
+    A = np.max(y)
+    mu = np.mean(x)  # Estoy dudoso de esta wea
+    sigma = np.std(x)
+    p0 = np.array([a[0], b[0], A, mu, sigma])
+    p_optimo_gauss, a_covarianza_gauss = scipy.optimize.curve_fit(Modelo_gauss,
+                                                                  x, y[:, 0], p0)
+    desv_fit[i] = p_optimo_gauss[4]
+    """y_data_ordenado = np.sort(y)
+    CDF_modelo_gauss, y_modelo_ordenado_gauss = ordenar(x, y,
+                                                        Modelo_gauss,
+                                                        p_optimo_gauss)
+    Dn_gauss, prob_gauss = stats.kstest(y_data_ordenado, prob_acumulada,
+                                        args=(y_modelo_ordenado_gauss,))
+    plt.clf()
+    plt.plot(x, Modelo_gauss(x, *p_optimo_gauss), color='r')
+    plt.plot(x, y)
+    plt.show()"""
+
+
+fwhm = 2*np.sqrt(2*np.log(2))*desv_fit*u.m/u.s
+R_eq = np.sqrt(len(spec[1, :])*area/np.pi).to(u.m)
+virial_mass = (5*fwhm**2*R_eq/(8*np.log(2)*c.G))
+
+
+"""graficos de ejemplo"""
+
+
+x = vel[49:113]
+y = spec[:, 20]
+
+a, b = np.polyfit(x, y, 1)
+A = np.max(y)
+mu = np.mean(x)  # Estoy dudoso de esta wea
+sigma = np.std(x)
+p0 = np.array([a[0], b[0], A, mu, sigma])
+p_optimo_gauss, a_covarianza_gauss = scipy.optimize.curve_fit(Modelo_gauss,
+                                                              x, y[:, 0], p0)
+desv_fit[i] = p_optimo_gauss[4]
+y_data_ordenado = np.sort(y)
+CDF_modelo_gauss, y_modelo_ordenado_gauss = ordenar(x, y,
+                                                    Modelo_gauss,
+                                                    p_optimo_gauss)
+Dn_gauss, prob_gauss = stats.kstest(y_data_ordenado, prob_acumulada,
+                                    args=(y_modelo_ordenado_gauss,))
+plt.clf()
+plt.plot(x, Modelo_gauss(x, *p_optimo_gauss), color='r')
+plt.plot(x, y)
+plt.axvline(p_optimo_gauss[3], color='orange')
+plt.axvline(p_optimo_gauss[3]+np.sqrt(2*np.log(2))*p_optimo_gauss[4], color='black')
+plt.axvline(p_optimo_gauss[3]-np.sqrt(2*np.log(2))*p_optimo_gauss[4], color='black')
+plt.show()

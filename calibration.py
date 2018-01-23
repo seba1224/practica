@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 
 
 """Comparacion de los espectros integrados, ver q la integracion q hizo MacFITS
-es solo la suma, falta multiplicar por delta v"""
+es solo la suma, falta multiplicar por delta v (parece q no..)"""
 delta_vel = 0.31659999999999755
 cubo_thin = pf.open('integ_RCrA_19Jan.fit')
 cubo_wide = pf.open('integ_RCrA_wide_19Jan.fit')
-integ_thin = cubo_thin[0].data*delta_vel
-integ_wide = cubo_wide[0].data*delta_vel
+integ_thin = cubo_thin[0].data
+integ_wide = cubo_wide[0].data
 head_integ_thin = cubo_thin[0].header
 head_integ_wide = cubo_wide[0].header
 fig_1 = plt.figure()
@@ -42,7 +42,7 @@ ax3.plot(integ_thin_flat[index_sort], integ_thin_flat[index_sort]*reg[0][0] +
          reg[0][1], 'r', label='y=x$\\bullet$'+str(round(reg[0][0], 3))+'+' +
          str(round(reg[0][1], 3)))
 ax3.legend()
-
+corr_integ = np.corrcoef(integ_thin_flat[index_sort], integ_wide_flat[index_sort])
 
 """Se repite el procedimiento para los datos de peak temperature"""
 
@@ -82,3 +82,4 @@ ax6.plot(peak_thin_flat[index_sort2], peak_thin_flat[index_sort2]*reg2[0][0] +
          str(round(reg2[0][1], 3)))
 ax6.legend()
 plt.show()
+corr_peak = np.corrcoef(peak_thin_flat[index_sort2], peak_wide_flat[index_sort2])
