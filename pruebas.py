@@ -47,8 +47,6 @@ sigma2 = np.sqrt(len(vel))*temp_rms2*delta_vel
 integ_fits = pf.open('integ_RCrA_19Jan.fit')
 peak_fits = pf.open('peak_RCrA_19jan.fit')
 integ_data = integ_fits[0].data
-"""no estoy tan seguro que haya q multiplicar por delta v, por que si hago
-integrate.trapz(datos[49:113,4,4], vel[49:113] da lo mismo q el fits"""
 peak_data = peak_fits[0].data
 integ_data_flat = integ_data.reshape(81)
 index_emission = np.argwhere((integ_data_flat-3*sigma2.reshape(81)) > 0)
@@ -119,22 +117,23 @@ for i in range(0, len(spec[1, :])):
     p_optimo_gauss, a_covarianza_gauss = scipy.optimize.curve_fit(Modelo_gauss,
                                                                   x, y[:, 0], p0)
     desv_fit[i] = p_optimo_gauss[4]
-    """y_data_ordenado = np.sort(y)
-    CDF_modelo_gauss, y_modelo_ordenado_gauss = ordenar(x, y,
-                                                        Modelo_gauss,
-                                                        p_optimo_gauss)
-    Dn_gauss, prob_gauss = stats.kstest(y_data_ordenado, prob_acumulada,
-                                        args=(y_modelo_ordenado_gauss,))
-    plt.clf()
-    plt.plot(x, Modelo_gauss(x, *p_optimo_gauss), color='r')
-    plt.plot(x, y)
-    plt.show()"""
 
 
-fwhm = 2*np.sqrt(2*np.log(2))*desv_fit*u.m/u.s
-R_eq = np.sqrt(len(spec[1, :])*area/np.pi).to(u.m)
-virial_mass = (5*fwhm**2*R_eq/(8*np.log(2)*c.G))
+def virial_mass(desv_fit, k, r):
+    """desv_fit en km/s, r en pc, k es el coef de la distribucion de densidad
+    rho(r) = r**-k"""
+    mass = 3*(5 - 2*k)*r*desv_fit**2/((3-k)*c.G.to(u.pc*u.km**2/(u.M_sun*u.s**2)))
+    output = np.sum(mass)
+    return output
 
+
+desv = desv_fit*u.km/u.s/np.sqrt(3)
+r = np.sqrt(area/np.pi).to(u.pc)
+
+
+masa_virial0 = virial_mass(desv, 0, r)
+masa_virial1 = virial_mass(desv, 1, r)
+masa_virial2 = virial_mass(desv, 2, r)
 
 """graficos de ejemplo"""
 
@@ -157,8 +156,8 @@ CDF_modelo_gauss, y_modelo_ordenado_gauss = ordenar(x, y,
 Dn_gauss, prob_gauss = stats.kstest(y_data_ordenado, prob_acumulada,
                                     args=(y_modelo_ordenado_gauss,))
 plt.clf()
-plt.plot(x, Modelo_gauss(x, *p_optimo_gauss), color='r')
-plt.plot(x, y)
+plt.plot(x, Modelo_gauss(x, *p_optimo_gauss), color='r', label='fitting')
+plt.plot(x, y, label='medicion')
 plt.axvline(p_optimo_gauss[3], color='orange')
 plt.axvline(p_optimo_gauss[3]+np.sqrt(2*np.log(2))*p_optimo_gauss[4], color='black')
 plt.axvline(p_optimo_gauss[3]-np.sqrt(2*np.log(2))*p_optimo_gauss[4], color='black')
